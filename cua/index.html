@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenRouter Dot Bench</title>
+  <style>
+    table {
+      width: 100%;
+    }
+
+    th {
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="grid">
+      <section class="panel">
+        <div class="stack">
+          <div>
+            <div class="actions" style="margin-bottom: 10px;">
+              <button id="selectAll">Select all</button>
+              <button id="selectNone">Select none</button>
+            </div>
+            <div id="modelList" class="models"></div>
+          </div>
+
+          <br>
+
+          <div class="actions">
+            <button id="runBench" class="primary">Run benchmark</button>
+            <button id="clearResults">Clear results</button>
+            <button id="downloadCsv" disabled>Download CSV</button>
+            <button id="loadCsv">Load CSV</button>
+            <input id="csvFile" type="file" accept=".csv,text/csv" hidden>
+            <label for="sortSelect">Sort</label>
+            <select id="sortSelect">
+              <option value="best">Best</option>
+              <option value="dist">Distance</option>
+              <option value="time">Time</option>
+              <option value="cost">Cost</option>
+            </select>
+          </div>
+
+          <div id="status" class="status"></div>
+        </div>
+      </section>
+
+      <br>
+
+      <section class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>X</th>
+                <th>Y</th>
+                <th>Dist</th>
+                <th>Time s</th>
+                <th>Cost $</th>
+                <th>Cost x1000 $</th>
+              </tr>
+            </thead>
+            <tbody id="rows">
+              <tr>
+                <td colspan="7">No results yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const WIDTH = 1024;
+    const HEIGHT = 768;
+    const REAL = { x: 751, y: 275 };
+    const IMAGE_PATH = "/image.png";
+    const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
+
+    const MODELS_PATH = "/models.json";
+
+    // known-good providers
+    const PROVIDERS = [
+      "moonshotai",
+      "openai",
+      "anthropic",
+      "alibaba",
+      "google-ai-studio",
+      "z-ai",
+      "xai"
+    ];
+
+    const elements = {
+      selectAll: document.getElementById("selectAll"),
+      selectNone: document.getElementById("selectNone"),
+      modelList: document.getElementById("modelList"),
+      runBench: document.getElementById("runBench"),
+      clearResults: document.getElementById("clearResults"),
+      downloadCsv: document.getElementById("downloadCsv"),
+      loadCsv: document.getElementById("loadCsv"),
+      csvFile: document.getElementById("csvFile"),
+      sortSelect: document.getElementById("sortSelect"),
+      status: document.getElementById("status"),
+      rows: document.getElementById("rows")
+    };
+
+    let modelConfigs = [];
+    let results = [];
+    let currentSort = elements.sortSelect.value;
+    let running = false;
+    let imageDataUrlPromise = null;
+
+    const injectedApiKey = typeof window !== "undefined" ? window.__OPENROUTER_API_KEY__ || "" : "";
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function round(value, places) {
+      const scale = 10 ** places;
+      return Math.round(value * scale) / scale;
+    }
+
+    function dist(a, b) {
+      return Math.hypot(b.x - a.x, b.y - a.y);
+    }
+
+    function setStatus(message, isError = false) {
+      elements.status.textContent = message;
+      elements.status.classList.toggle("error", isError);
+    }
+
+    async function imageDataUrl() {
+      if (!imageDataUrlPromise) {
+        imageDataUrlPromise = fetch(IMAGE_PATH)
+          .then((response) => {
+            if (!response.ok) throw new Error(`Failed to load ${IMAGE_PATH}`);
+            return response.blob();
+          })
+          .then((blob) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error(`Failed to read ${IMAGE_PATH}`));
+            reader.readAsDataURL(blob);
+          }));
+      }
+
+      return imageDataUrlPromise;
+    }
+
+    function formatModelMeta(config) {
+      const parts = [];
+      if (config.reasoning) parts.push("reasoning");
+      if (config.norm) parts.push(`norm ${config.norm[0]}x${config.norm[1]}`);
+      return parts.length ? parts.join(" | ") : "direct coordinates";
+    }
+
+    function renderModelList() {
+      elements.modelList.innerHTML = modelConfigs.map((config, index) => `
+        <label style="display: block;">
+          <input type="checkbox" data-model-index="${index}" ${config.enabled ? "checked" : ""}>
+          ${escapeHtml(config.model)}${config.reasoning || config.norm ? ` (${escapeHtml(formatModelMeta(config))})` : ""}
+        </label>
+      `).join("");
+    }
+
+    function parseCoords(response, norm) {
+      const toolCall = response.choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall) throw new Error("No tool call returned");
+      const args = JSON.parse(toolCall.function.arguments);
+      const x = Math.round(norm ? (args.x * WIDTH) / norm[0] : args.x);
+      const y = Math.round(norm ? (args.y * HEIGHT) / norm[1] : args.y);
+      return { x, y };
+    }
+
+    function compareText(a, b) {
+      return a.localeCompare(b);
+    }
+
+    function compareNumber(a, b) {
+      return a - b;
+    }
+
+    function compareByDist(a, b) {
+      return compareNumber(a.dist_raw, b.dist_raw)
+        || compareNumber(a.time_cost_raw, b.time_cost_raw)
+        || compareNumber(a.time_raw, b.time_raw)
+        || compareNumber(a.cost_raw, b.cost_raw)
+        || compareText(a.model, b.model);
+    }
+
+    function compareByTime(a, b) {
+      return compareNumber(a.time_raw, b.time_raw)
+        || compareNumber(a.dist_raw, b.dist_raw)
+        || compareNumber(a.cost_raw, b.cost_raw)
+        || compareText(a.model, b.model);
+    }
+
+    function compareByCost(a, b) {
+      return compareNumber(a.cost_raw, b.cost_raw)
+        || compareNumber(a.dist_raw, b.dist_raw)
+        || compareNumber(a.time_raw, b.time_raw)
+        || compareText(a.model, b.model);
+    }
+
+    function bestScore(row) {
+      if (row.dist_raw > 10) return Infinity;
+      return (row.dist_raw + 1) * row.time_raw * row.cost_raw;
+    }
+
+    function compareByBest(a, b) {
+      return compareNumber(bestScore(a), bestScore(b))
+        || compareNumber(a.dist_raw, b.dist_raw)
+        || compareNumber(a.time_raw, b.time_raw)
+        || compareNumber(a.cost_raw, b.cost_raw)
+        || compareText(a.model, b.model);
+    }
+
+    const sorters = {
+      best: compareByBest,
+      dist: compareByDist,
+      time: compareByTime,
+      cost: compareByCost
+    };
+
+    function sortedResults() {
+      return [...results].sort(sorters[currentSort]);
+    }
+
+    function updateDownloadState() {
+      elements.downloadCsv.disabled = running || results.length === 0;
+    }
+
+    function renderResults() {
+      const sorted = sortedResults();
+      updateDownloadState();
+      if (!sorted.length) {
+        elements.rows.innerHTML = '<tr><td colspan="7">No results yet.</td></tr>';
+        return;
+      }
+
+      elements.rows.innerHTML = sorted.map((row) => `
+        <tr>
+          <td class="model">${escapeHtml(row.model)}</td>
+          <td class="num">${row.x}</td>
+          <td class="num">${row.y}</td>
+          <td class="num">${row.dist.toFixed(2)}</td>
+          <td class="num">${row.time.toFixed(2)}</td>
+          <td class="num">${row.cost.toFixed(5)}</td>
+          <td class="num">${row.cost_1k.toFixed(3)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function selectedConfigs() {
+      return Array.from(elements.modelList.querySelectorAll("input[type=checkbox]"))
+        .filter((input) => input.checked)
+        .map((input) => modelConfigs[Number(input.dataset.modelIndex)]);
+    }
+
+    async function loadModelConfigs() {
+      setStatus("Loading models...");
+      const response = await fetch(MODELS_PATH);
+      if (!response.ok) throw new Error(`Failed to load ${MODELS_PATH}`);
+      const payload = await response.json();
+      modelConfigs = Object.entries(payload).map(([model, options]) => ({
+        model,
+        enabled: true,
+        ...options
+      }));
+      renderModelList();
+      setStatus("");
+    }
+
+    async function runModel(config, apiKey, imageUrl) {
+      const started = performance.now();
+      const response = await fetch(BASE_URL, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: config.model,
+          reasoning: {
+            enabled: Boolean(config.reasoning)
+          },
+          provider: {
+            only: PROVIDERS
+          },
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: "return the x,y coordinates pinpointing the center of the red dot using the return_coords tool."
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: imageUrl
+                  }
+                }
+              ]
+            }
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "return_coords",
+                description: "Call this tool to return the coordinates",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    x: { type: "number" },
+                    y: { type: "number" }
+                  },
+                  required: ["x", "y"],
+                  additionalProperties: false
+                }
+              }
+            }
+          ]
+        })
+      });
+
+      const payload = await response.json();
+      const elapsed = (performance.now() - started) / 1000;
+
+      if (!response.ok) {
+        const message = payload?.error?.message || `HTTP ${response.status}`;
+        throw new Error(message);
+      }
+
+      const coords = parseCoords(payload, config.norm || null);
+      const costRaw = Number(payload?.usage?.cost_details?.upstream_inference_cost || 0);
+      const distanceRaw = dist(coords, REAL);
+      console.log(config.model, { x: coords.x, y: coords.y, time: elapsed, cost: costRaw, dist: distanceRaw });
+
+      return {
+        model: config.model,
+        x: coords.x,
+        y: coords.y,
+        dist: round(distanceRaw, 2),
+        time: round(elapsed, 2),
+        cost: round(costRaw, 5),
+        cost_1k: round(costRaw * 1000, 3),
+        dist_raw: distanceRaw,
+        time_raw: elapsed,
+        cost_raw: costRaw,
+        time_cost_raw: elapsed * costRaw
+      };
+    }
+
+    function csvCell(value) {
+      const text = String(value ?? "");
+      return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    }
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let cell = "";
+      let quoted = false;
+
+      for (let i = 0; i < text.length; i += 1) {
+        const ch = text[i];
+
+        if (quoted) {
+          if (ch === '"') {
+            if (text[i + 1] === '"') {
+              cell += '"';
+              i += 1;
+            } else {
+              quoted = false;
+            }
+          } else {
+            cell += ch;
+          }
+          continue;
+        }
+
+        if (ch === '"') {
+          quoted = true;
+        } else if (ch === ',') {
+          row.push(cell);
+          cell = "";
+        } else if (ch === '\n') {
+          row.push(cell);
+          rows.push(row);
+          row = [];
+          cell = "";
+        } else if (ch !== '\r') {
+          cell += ch;
+        }
+      }
+
+      if (cell !== "" || row.length) {
+        row.push(cell);
+        rows.push(row);
+      }
+
+      return rows;
+    }
+
+    function parseLoadedResults(text) {
+      const rows = parseCsv(text);
+      if (rows.length < 2) throw new Error("CSV has no data rows");
+
+      const headers = rows[0];
+      const index = Object.fromEntries(headers.map((header, i) => [header, i]));
+      const required = ["model", "x", "y", "dist", "time_s", "cost", "dist_raw", "time_raw", "cost_raw", "time_cost_raw"];
+
+      for (const key of required) {
+        if (!(key in index)) throw new Error(`CSV missing column ${key}`);
+      }
+
+      return rows.slice(1).filter((row) => row.length && row.some((cell) => cell !== "")).map((row) => ({
+        model: row[index.model],
+        x: Number(row[index.x]),
+        y: Number(row[index.y]),
+        dist: Number(row[index.dist]),
+        time: Number(row[index.time_s]),
+        cost: Number(row[index.cost]),
+        cost_1k: "cost_x1000" in index ? Number(row[index.cost_x1000]) : round(Number(row[index.cost_raw]) * 1000, 3),
+        dist_raw: Number(row[index.dist_raw]),
+        time_raw: Number(row[index.time_raw]),
+        cost_raw: Number(row[index.cost_raw]),
+        time_cost_raw: Number(row[index.time_cost_raw])
+      }));
+    }
+
+    function downloadCsv() {
+      if (!results.length) return;
+
+      const headers = [
+        "model",
+        "x",
+        "y",
+        "dist",
+        "time_s",
+        "cost",
+        "cost_x1000",
+        "dist_raw",
+        "time_raw",
+        "cost_raw",
+        "time_cost_raw"
+      ];
+      const rows = sortedResults().map((row) => [
+        row.model,
+        row.x,
+        row.y,
+        row.dist.toFixed(2),
+        row.time.toFixed(2),
+        row.cost.toFixed(5),
+        row.cost_1k.toFixed(3),
+        row.dist_raw,
+        row.time_raw,
+        row.cost_raw,
+        row.time_cost_raw
+      ]);
+      const csv = [headers, ...rows].map((line) => line.map(csvCell).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      link.href = url;
+      link.download = `openrouter-dot-bench-${stamp}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function setRunning(nextRunning) {
+      running = nextRunning;
+      updateDownloadState();
+      elements.runBench.disabled = nextRunning;
+      Array.from(document.querySelectorAll("button, input[type=checkbox]"))
+        .forEach((el) => {
+          if (el === elements.clearResults || el === elements.downloadCsv) return;
+          el.disabled = nextRunning;
+        });
+      elements.sortSelect.disabled = nextRunning;
+    }
+
+    async function runBench() {
+      const apiKey = injectedApiKey.trim();
+      const configs = selectedConfigs();
+
+      if (!apiKey) {
+        setStatus("No OPENROUTER_API_KEY injected.", true);
+        return;
+      }
+
+      if (!configs.length) {
+        setStatus("Select at least one model.", true);
+        return;
+      }
+
+      const imageUrl = await imageDataUrl();
+      results = [];
+      renderResults();
+      setRunning(true);
+      setStatus(`Running ${configs.length} model${configs.length === 1 ? "" : "s"}...`);
+
+      try {
+        for (const [index, config] of configs.entries()) {
+          setStatus(`Running ${index + 1} of ${configs.length} - ${config.model}`);
+          try {
+            const result = await runModel(config, apiKey, imageUrl);
+            results.push(result);
+            renderResults();
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.error(config.model, message);
+          }
+        }
+
+        setStatus(`Finished ${results.length} successful result${results.length === 1 ? "" : "s"}.`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setStatus(message, true);
+      } finally {
+        setRunning(false);
+        renderResults();
+      }
+    }
+
+    renderResults();
+    loadModelConfigs().catch((error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      setStatus(message, true);
+    });
+
+    elements.selectAll.addEventListener("click", () => {
+      elements.modelList.querySelectorAll("input[type=checkbox]").forEach((input) => {
+        input.checked = true;
+      });
+    });
+
+    elements.selectNone.addEventListener("click", () => {
+      elements.modelList.querySelectorAll("input[type=checkbox]").forEach((input) => {
+        input.checked = false;
+      });
+    });
+
+    elements.clearResults.addEventListener("click", () => {
+      results = [];
+      renderResults();
+      setStatus("Cleared results.");
+    });
+
+    elements.downloadCsv.addEventListener("click", () => {
+      downloadCsv();
+    });
+
+    elements.loadCsv.addEventListener("click", () => {
+      elements.csvFile.click();
+    });
+
+    elements.csvFile.addEventListener("change", async () => {
+      const [file] = elements.csvFile.files || [];
+      if (!file) return;
+
+      try {
+        results = parseLoadedResults(await file.text());
+        currentSort = elements.sortSelect.value;
+        renderResults();
+        setStatus("");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setStatus(message, true);
+      } finally {
+        elements.csvFile.value = "";
+      }
+    });
+
+    elements.runBench.addEventListener("click", () => {
+      if (!running) runBench();
+    });
+
+    elements.sortSelect.addEventListener("change", () => {
+      currentSort = elements.sortSelect.value;
+      renderResults();
+    });
+  </script>
+</body>
+</html>
