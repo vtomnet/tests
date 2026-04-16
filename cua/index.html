@@ -92,7 +92,9 @@
       "alibaba",
       "google-ai-studio",
       "z-ai",
-      "xai"
+      "xai",
+      "deepinfra", // for gemma-4
+      "together", // for qwen3.5-9b
     ];
 
     const elements = {
@@ -175,11 +177,9 @@
     }
 
     function parseCoords(response, norm) {
-      const toolCall = response.choices?.[0]?.message?.tool_calls?.[0];
-      if (!toolCall) throw new Error("No tool call returned");
-      const args = JSON.parse(toolCall.function.arguments);
-      const x = Math.round(norm ? (args.x * WIDTH) / norm[0] : args.x);
-      const y = Math.round(norm ? (args.y * HEIGHT) / norm[1] : args.y);
+      const parsed = JSON.parse(response.choices[0].message.content);
+      const x = Math.round(norm ? (parsed.x * WIDTH) / norm[0] : parsed.x);
+      const y = Math.round(norm ? (parsed.y * HEIGHT) / norm[1] : parsed.y);
       return { x, y };
     }
 
@@ -304,7 +304,7 @@
               content: [
                 {
                   type: "text",
-                  text: "return the x,y coordinates pinpointing the center of the red dot using the return_coords tool."
+                  text: "return the x,y coordinates pinpointing the center of the red dot.",
                 },
                 {
                   type: "image_url",
@@ -315,25 +315,23 @@
               ]
             }
           ],
-          tools: [
-            {
-              type: "function",
-              function: {
-                name: "return_coords",
-                description: "Call this tool to return the coordinates",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    x: { type: "number" },
-                    y: { type: "number" }
-                  },
-                  required: ["x", "y"],
-                  additionalProperties: false
-                }
-              }
-            }
-          ]
-        })
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "coords",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  x: { type: "number" },
+                  y: { type: "number" },
+                },
+                required: ["x", "y"],
+                additionalProperties: false,
+              },
+            },
+          },
+        }),
       });
 
       const payload = await response.json();
