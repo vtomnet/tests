@@ -1,0 +1,11 @@
+{
+  "tasks": {
+    "run": "deno run --allow-all main.ts",
+    "login": "deno run --allow-all login.ts"
+  },
+  "imports": {
+    "@earendil-works/gondolin": "npm:@earendil-works/gondolin@^0.8.0",
+    "@mariozechner/pi-coding-agent": "npm:@mariozechner/pi-coding-agent@^0.70.2",
+    "@std/assert": "jsr:@std/assert@1"
+  }
+}
