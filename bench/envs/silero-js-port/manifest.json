@@ -1,0 +1,3 @@
+{
+  "prompt": "Review ./vendor/onnxruntime/js and ./vendor/silero-vad/examples to grok how to use silero vad with onnx with js. then write ./asr/vad.js, which should export a vad interface in the typical way for silero."
+}

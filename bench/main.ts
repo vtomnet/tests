@@ -48,7 +48,7 @@ const MODELS = [
   "openai-codex/gpt-5.5:high",
   "opencode-go/kimi-k2.6:high",
   "opencode-go/glm-5.1:high",
-  "opencode-go/deepseek-v4-pro:high",
+  "deepseek/deepseek-v4-pro:high",
   "opencode-go/mimo-v2.5-pro:high",
   "opencode-go/minimax-m2.7:high",
 ];
@@ -465,14 +465,17 @@ async function runAgent(
     `${envName}: pi session ${session.sessionId} ${session.sessionFile ?? ""}`,
   );
 
+  let streamedText = false;
+  let streamedTextEndedWithNewline = true;
   const unsubscribe = session.subscribe((event) => {
     if (
       event.type === "message_update" &&
       event.assistantMessageEvent.type === "text_delta"
     ) {
-      Deno.stdout.writeSync(
-        new TextEncoder().encode(event.assistantMessageEvent.delta),
-      );
+      const delta = event.assistantMessageEvent.delta;
+      streamedText = true;
+      streamedTextEndedWithNewline = delta.endsWith("\n");
+      Deno.stdout.writeSync(new TextEncoder().encode(delta));
     } else if (event.type === "tool_execution_start") {
       console.log(
         `\n[tool:start] ${event.toolName} ${JSON.stringify(event.args)}`,
@@ -492,6 +495,7 @@ async function runAgent(
     await session.prompt(prompt, { expandPromptTemplates: false });
   } finally {
     unsubscribe();
+    if (streamedText && !streamedTextEndedWithNewline) console.log();
     session.dispose();
   }
 
@@ -679,9 +683,10 @@ async function main() {
       addedAny = true;
     }
 
-    if (addedAny) {
+    const resultsPath = path.join(testDir, "results.json");
+    if (addedAny || !existsSync(resultsPath)) {
       await runJudge(testDir);
-      generatedPaths.push(path.join(testDir, "results.json"));
+      generatedPaths.push(resultsPath);
     }
   }
 
