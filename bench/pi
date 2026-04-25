@@ -1,2 +1,0 @@
-#!/bin/sh
-PI_CODING_AGENT_DIR=${0%/*}/pi.d pi
