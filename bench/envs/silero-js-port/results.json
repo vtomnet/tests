@@ -1,129 +1,249 @@
 {
-  "winner": "openai-codex/gpt-5.5:high",
-  "rounds": [
+  "version": 2,
+  "strategy": "double-elimination",
+  "ranking": [
+    "openai-codex/gpt-5.5:high",
+    "opencode-go/mimo-v2.5-pro:high",
+    "opencode-go/glm-5.1:high",
+    "deepseek/deepseek-v4-pro:high",
+    "opencode-go/kimi-k2.6:high",
+    "opencode-go/minimax-m2.7:high"
+  ],
+  "matches": [
     {
-      "round": 1,
-      "matches": [
-        {
-          "a": "deepseek/deepseek-v4-pro:high",
-          "b": "openai-codex/gpt-5.5:high",
-          "winner": "openai-codex/gpt-5.5:high",
-          "result": {
-            "judgements": [
-              {
-                "model": "openai/gpt-5.5:medium",
-                "judgement": "b",
-                "reasoning": "Result B is the better implementation. It more closely matches the typical Silero VAD JavaScript/Python-style interface: it provides a default model path, loadSileroVad/load_silero_vad, getSpeechTimestamps/get_speech_timestamps, VADIterator, collect/drop chunk helpers, and a default `vad` facade. Its ONNX wrapper handles state/context correctly for the Silero model, supports batched inputs, resolves output names robustly, accepts common audio typed arrays, supports snake_case and camelCase options, and integrates more cleanly with `onnxruntime-node`/`onnxruntime-web`.\n\nResult A is simpler and partially correct for the core single-frame ONNX call and timestamp logic, but it is less complete and has notable integration and correctness issues. It lacks the usual Silero-style loader aliases and default model path, falls back to `onnxruntime-common` rather than a usable web runtime, and its handling of sample rates above 16 kHz in `getSpeechTimestamps` is broken because it computes a downsampling step but does not actually downsample the full audio before chunking/inference. Its streaming iterator also drops short tails rather than buffering them, and the public API is narrower.\n\nResult B is somewhat larger and less minimal, and its streaming iterator expects callers to feed valid frame-sized chunks rather than buffering arbitrary input. However, overall it is more correct, maintainable, feature-complete, and better aligned with Silero VAD conventions and ONNX Runtime JS usage."
-              },
-              {
-                "model": "anthropic/claude-opus-4-7:medium",
-                "judgement": "b",
-                "reasoning": "A is simpler and more focused but has a bug: it never updates `_state` from the ONNX output correctly when the tensor data is a typed array view—actually it uses `this._state.set(stateN)` which works. However, A's main issues: doesn't handle int PCM normalization, no batch support, no default model path resolution, and `getSpeechTimestamps` uses `samplingRate` (original, possibly multiple of 16000) for sample-based math while `windowSize` is for the downsampled rate, causing inconsistencies. Also possibleEnds tracking is awkward.\n\nB is more complete and faithful to the Python silero-vad API: provides `load_silero_vad`, `get_speech_timestamps`, `VADIterator`, `collect_chunks`, `drop_chunks`, snake_case aliases, default model path via vendored ONNX, batch support, int PCM normalization, audioForward, progress callback. It mirrors the Python `utils_vad.py` logic more precisely (including the max_speech possible_ends tracking). The facade `createVad` and `vad` default export integrate cleanly. More verbose but maintainable and clearly the \"typical Silero interface\" the prompt asks for.\n\nB wins on completeness, fidelity to Silero's Python API, and integration (default model path pointing at vendored file)."
-              }
-            ],
-            "judgement": "b"
+      "phase": "double-elimination round 1",
+      "a": "openai-codex/gpt-5.5:high",
+      "b": "opencode-go/kimi-k2.6:high",
+      "winner": "openai-codex/gpt-5.5:high",
+      "result": {
+        "judgements": [
+          {
+            "model": "openai/gpt-5.5:medium",
+            "judgement": "a",
+            "reasoning": "Result A is much closer to a typical Silero VAD JavaScript interface. It exports loadSileroVad/load_silero_vad, getSpeechTimestamps/get_speech_timestamps, VADIterator, collect/drop chunk helpers, a default vad facade, and a reusable ONNX model wrapper. Its ONNX integration handles the Silero recurrent state and context correctly, supports both 8 kHz and 16 kHz, pads the final frame for full-audio processing, offers Python-style option aliases, and resolves the vendored model path relative to the module. It is more complex than necessary and has some subtle algorithmic areas that could be reviewed, but overall it is comprehensive, maintainable, and fits the requested Silero-style API.\n\nResult B is simpler, but it is substantially less complete and less cleanly integrated. It statically imports onnxruntime-node only, uses a fragile relative default model path, provides no load_silero_vad/model wrapper/default vad export, has a nonstandard getSpeechTimestamps signature that creates a new session every call, drops trailing audio instead of padding it, and exposes fewer Silero-compatible options/aliases. Its state machine is also folded into the inference call, making streaming and full-file behavior less clear. Therefore A should advance."
+          },
+          {
+            "model": "anthropic/claude-opus-4-7:medium",
+            "judgement": "a",
+            "reasoning": "A more faithfully implements the \"typical Silero interface\" by exposing load_silero_vad, get_speech_timestamps, VADIterator, collect_chunks, drop_chunks (both camelCase and snake_case aliases), matching the Python silero-vad package API the prompt references. It correctly handles both 8k/16k sample rates with proper window sizes (256/512), context sizes (32/64), batched inputs, and padding for audio_forward. It also gracefully handles ort loading (node or web). B is simpler and cleaner but: (1) only exposes VadIterator + getSpeechTimestamps, missing most of the standard Silero API; (2) hard-imports onnxruntime-node; (3) uses a configurable frameSizeMs which can produce non-supported window sizes (Silero requires exactly 512 or 256); (4) adds non-standard startSec/endSec fields rather than the standard returnSeconds option. A's port of the speech-timestamps state machine is closer to the official Python reference (including max_speech handling with possibleEnds). A is more complete and integrates more cleanly with the Silero ecosystem despite being larger."
           }
-        },
-        {
-          "a": "opencode-go/glm-5.1:high",
-          "b": "opencode-go/kimi-k2.6:high",
-          "winner": "opencode-go/glm-5.1:high",
-          "result": {
-            "judgements": [
-              {
-                "model": "openai/gpt-5.5:medium",
-                "judgement": "a",
-                "reasoning": "Result A is the better implementation overall. It provides a clean low-level ONNX wrapper plus a Silero-style iterator and getSpeechTimestamps helper, handles recurrent state/context correctly, pads partial chunks, exposes reset/release lifecycle methods, supports both 8 kHz and 16 kHz, and avoids hard-coding output tensor names by using the session output order. Its API is more maintainable and more generally useful for integration.\n\nResult A is not perfect: the streaming VADIterator has some sample-index inconsistencies for end events and does not use its minSpeechMs setting in the streaming path; batchSize support is also not really implemented beyond shape parameters. However, the full-buffer getSpeechTimestamps logic is reasonably close to the Silero algorithm and the ONNX invocation is straightforward.\n\nResult B is closer in spirit to the official C++ state machine and includes max speech duration handling and second-based output fields. However, it is less clean as an interface: it combines inference and segment accumulation in one class, has no session release, hard-codes output names (`output`, `stateN`), drops trailing partial audio chunks instead of padding them, creates a new session in the convenience function without cleanup, and has a likely bug where short speech segments below minSpeechDurationMs are not reset/discarded properly. These issues make it less robust and less maintainable.\n\nGiven the prompt’s preference for correctness, simplicity, maintainability, and clean ONNX/Silero integration, Result A should advance."
-              },
-              {
-                "model": "anthropic/claude-opus-4-7:medium",
-                "judgement": "b",
-                "reasoning": "B closely mirrors the official Silero VAD C++ reference implementation (with prevEnd/nextStart/maxSpeech logic), uses the correct output names ('output', 'stateN') from the Silero ONNX model, and provides a clean factory pattern. A uses positional output access (fragile), has a less faithful state machine, and uses sr tensor shape [] instead of [1]. B is more correct and integrates more cleanly with the Silero examples."
-              }
-            ],
-            "tiebreaker": {
-              "model": "google/gemini-3.1-pro-preview:medium",
-              "judgement": "a",
-              "reasoning": "Result A provides a much better architecture that cleanly mirrors the official Silero VAD Python implementation. It separates the base ONNX wrapper (`VoiceActivityDetector`) from the streaming state machine (`VADIterator`) and the full-file processing utility (`getSpeechTimestamps`), matching the `model`, `VADIterator`, and `get_speech_timestamps` pattern in Silero. It also correctly accepts the VAD instance as an argument in `getSpeechTimestamps`. \n\nResult B suffers from a major memory leak in its `getSpeechTimestamps` function by instantiating a new ONNX `InferenceSession` on every call without ever releasing it. It also inappropriately combines the ONNX model evaluation and the VAD state machine into a single class, drops partial audio chunks at the end of the file, and hardcodes tensor shapes and names.\n\nWhile Result A's positional output extraction is slightly non-standard compared to explicitly requesting 'output' and 'stateN', it guarantees compatibility by dynamically reading the model's output names. Result A is far more maintainable, robust, and idiomatic for a Node.js API wrapper."
-            },
-            "judgement": "a"
-          }
-        },
-        {
-          "a": "opencode-go/mimo-v2.5-pro:high",
-          "b": "opencode-go/minimax-m2.7:high",
-          "winner": "opencode-go/mimo-v2.5-pro:high",
-          "result": {
-            "judgements": [
-              {
-                "model": "openai/gpt-5.5:medium",
-                "judgement": "a",
-                "reasoning": "Result A is clearly the better implementation. It is valid JavaScript, exports a usable async factory (`createVad`), constructs the Silero ONNX inputs in the expected shape (`input`, `state`, `sr`), maintains recurrent state/context, and provides both whole-buffer and streaming-style processing. It is not perfect: the exported API may not exactly match the common Silero `get_speech_timestamps` naming, it assumes output names `output`/`stateN`, does not handle a final partial chunk, and its timestamp padding/segmentation logic is only an approximation of the reference. However, it is relatively simple, maintainable, and likely to run with ONNX Runtime given a model path or bytes.\n\nResult B has more surface area and attempts to mimic Python Silero helper names, but it is fundamentally unsuitable as `asr/vad.js`: it contains TypeScript-only syntax (`export interface`, typed parameters/returns, `private` fields/methods) in a `.js` file, so it will fail to parse in a normal JavaScript runtime. It also has concrete implementation bugs such as `this.speechPadMs` being referenced despite no such property existing, uses `__dirname` in an ES module context, hardcodes the 16 kHz context size even for 8 kHz, rounds timestamps to 0.1s losing precision, omits padding/filtering logic in the final timestamps, and `load_silero_vad()` can return an unloaded VAD when no model path is provided. Because B is invalid JavaScript and less correct despite a broader API, A should advance."
-              },
-              {
-                "model": "anthropic/claude-opus-4-7:medium",
-                "judgement": "a",
-                "reasoning": "A is plain JavaScript as requested (file is vad.js), while B uses TypeScript syntax (interfaces, type annotations, `as Tensor`) which would not run as .js without transpilation - a significant correctness issue. A also correctly handles the context size for both 16kHz (64) and 8kHz (32) sample rates, while B hardcodes 64. A's logic is cleaner and the streaming/batch APIs are well separated. B has bugs like setting `currentSpeech.start = nextStart` after just nulling currentSpeech, and rounds timestamps to 0.1s which loses precision. A advances."
-              }
-            ],
-            "judgement": "a"
-          }
-        }
-      ]
+        ],
+        "judgement": "a"
+      }
     },
     {
-      "round": 2,
-      "matches": [
-        {
-          "a": "openai-codex/gpt-5.5:high",
-          "b": "opencode-go/glm-5.1:high",
-          "winner": "openai-codex/gpt-5.5:high",
-          "result": {
-            "judgements": [
-              {
-                "model": "openai/gpt-5.5:medium",
-                "judgement": "a",
-                "reasoning": "Result A is the better implementation. It exports a much more Silero-like JavaScript API: loadSileroVad/load_silero_vad, getSpeechTimestamps/get_speech_timestamps, VADIterator, collect/drop chunk helpers, a default facade, and a default model path. It also handles ONNX Runtime injection or dynamic loading, keeps recurrent state and context, supports 8 kHz/16 kHz and downsampling from multiples of 16 kHz, pads full-audio inference, supports batched frames, and implements most of Silero's Python timestamp logic and option names. This makes it much more likely to integrate cleanly with callers expecting the typical Silero interface.\n\nResult B is simpler and easier to read, and its low-level streaming wrapper is directionally correct. However, it is incomplete for the requested interface: it requires an explicit model path, hard-imports onnxruntime-node only, lacks load_silero_vad and most Python-compatible aliases/options, has only a simplified getSpeechTimestamps implementation, no return-seconds/downsampling/max-speech-duration behavior, and has a broken/unsupported batchSize path. It is more of a custom minimal wrapper than a typical Silero VAD interface.\n\nA has some rough edges and potential minor correctness concerns in edge cases, but overall it is far more complete, maintainable as a Silero-style module, and better aligned with the prompt."
-              },
-              {
-                "model": "anthropic/claude-opus-4-7:medium",
-                "judgement": "a",
-                "reasoning": "A more faithfully mirrors the Python silero-vad public API (load_silero_vad, get_speech_timestamps, VADIterator, collect_chunks/drop_chunks, utils, plus a default model path resolved relative to the vendored ONNX file). It correctly sets the `sr` tensor shape to [1] (Silero expects rank-1), properly maintains per-batch context buffers, supports 8k/16k and downsampling from multiples of 16k, and handles the max_speech_duration_s logic. B is simpler and more readable, but uses shape `[]` for the sr tensor (scalar rank-0), which Silero's ONNX graph typically rejects (expects [1]); it also lacks the model path default, batching support beyond 1, and the more complete timestamp algorithm. A's breadth, correctness on the ORT inputs, and closer match to the requested \"typical silero interface\" outweigh its larger size."
-              }
-            ],
-            "judgement": "a"
+      "phase": "double-elimination round 1",
+      "a": "opencode-go/glm-5.1:high",
+      "b": "deepseek/deepseek-v4-pro:high",
+      "winner": "deepseek/deepseek-v4-pro:high",
+      "result": {
+        "judgements": [
+          {
+            "model": "openai/gpt-5.5:medium",
+            "judgement": "b",
+            "reasoning": "Result B is the stronger implementation overall. It exposes a more Silero-like interface (VAD.load, model.call(x, sampleRate), getSpeechTimestamps, VADIterator), uses the expected Silero ONNX feed/output names (input/state/sr and output/stateN), implements reset/state/context handling, supports the usual 8 kHz/16 kHz window sizes, and its timestamp API is closer to the Python Silero utilities, including returnSeconds and duration/padding options. For common 16 kHz usage it should integrate more naturally with the Silero examples.\n\nResult A is simpler and has some good qualities: it is easier to read, uses positional output lookup which is robust to output-name variations, and its core streaming state/context logic is mostly reasonable. However, its interface is less typical for Silero JS/Python usage, it hardcodes a constructor/init pattern rather than a load/call wrapper, has less complete timestamp options, questionable scalar sr tensor shape depending on the model export, incomplete batch handling, and some event/timestamp edge cases.\n\nResult B is not perfect: the fallback to onnxruntime-common is not very useful by itself, handling of sample rates that are multiples of 16 kHz is flawed in getSpeechTimestamps, long/short chunks in VADIterator are not buffered cleanly, and the max-speech splitting logic is more complex than ideal. Still, for the intended Silero ONNX 8 kHz/16 kHz workflow it is more complete and closer to the provided Silero examples, so B should advance."
+          },
+          {
+            "model": "anthropic/claude-opus-4-7:medium",
+            "judgement": "b",
+            "reasoning": "Result B more closely mirrors the official Silero VAD Python interface (VAD.load, getSpeechTimestamps with returnSeconds, VADIterator with samplingRate option, max_speech_duration handling). It correctly accesses outputs by name (`results.output`, `results.stateN`) matching the actual Silero ONNX model output names, while Result A relies on positional outputNames access which is fragile. B's getSpeechTimestamps faithfully ports the Python algorithm including max-speech segmentation. A has a minor sr tensor shape issue (uses []  scalar shape, though Silero expects [1]-ish; B uses [1]). Both are reasonable; B is more faithful to the reference and integrates more cleanly."
           }
-        },
-        {
-          "bye": "opencode-go/mimo-v2.5-pro:high",
-          "winner": "opencode-go/mimo-v2.5-pro:high"
-        }
-      ]
+        ],
+        "judgement": "b"
+      }
     },
     {
-      "round": 3,
-      "matches": [
-        {
-          "a": "openai-codex/gpt-5.5:high",
-          "b": "opencode-go/mimo-v2.5-pro:high",
-          "winner": "openai-codex/gpt-5.5:high",
-          "result": {
-            "judgements": [
-              {
-                "model": "openai/gpt-5.5:medium",
-                "judgement": "a",
-                "reasoning": "Result A is substantially closer to a usable Silero VAD JavaScript interface. It provides a Python/Silero-style API (`load_silero_vad`, `get_speech_timestamps`, `VADIterator`, chunk collection helpers, and a default facade), loads ONNX Runtime in a way that works with `onnxruntime-node` or `onnxruntime-web`, includes a default path to the vendored Silero ONNX model, correctly maintains Silero recurrent state and context, validates 8 kHz/16 kHz frame sizes, pads full-audio inference, and supports common option aliases. It is more complex than ideal and may have some edge-case imperfections in the timestamp/max-speech port, but it is broadly complete and maintainable.\n\nResult B is simpler, but it is much less complete and likely does not integrate cleanly. It imports from `onnxruntime-common`, which is not usually the runnable ORT backend package, requires a `model` option with no default vendored model path, does not export the typical Silero functions/classes by name, does not export its `VadIterator` class, only handles single-item batches, drops final partial frames in `process`, and its timestamp logic is a partial/less faithful port. It may work in a narrow setup if the caller supplies a model and backend wiring happens to be available, but it is not the requested typical Silero VAD interface."
-              },
-              {
-                "model": "anthropic/claude-opus-4-7:medium",
-                "judgement": "a",
-                "reasoning": "A closely mirrors the Python silero-vad public API (load_silero_vad, get_speech_timestamps, VADIterator, collect_chunks, drop_chunks), correctly handles the 512/256 frame size requirement, manages 64/32 sample context, supports batching and 8k/16k, and dynamically loads onnxruntime-node/web. B imports from onnxruntime-common (which has no backend, so InferenceSession.create won't work without a runtime registered), uses a fixed windowSizeMs that only coincidentally yields valid sizes, lacks the canonical silero API surface, and duplicates the streaming logic between process() and processChunk(). A is more correct, more complete, and integrates more cleanly with the vendored ORT and silero examples despite being longer."
-              }
-            ],
-            "judgement": "a"
+      "phase": "double-elimination round 1",
+      "a": "opencode-go/mimo-v2.5-pro:high",
+      "b": "opencode-go/minimax-m2.7:high",
+      "winner": "opencode-go/mimo-v2.5-pro:high",
+      "result": {
+        "judgements": [
+          {
+            "model": "openai/gpt-5.5:medium",
+            "judgement": "a",
+            "reasoning": "Result A should advance. It is plain JavaScript suitable for an asr/vad.js file, uses ONNX Runtime tensor/session APIs in a straightforward way, maintains Silero recurrent state and context, supports 8 kHz/16 kHz context sizes, and exposes a usable async createVad interface with batch and streaming methods. It is not perfect: the exported API is not especially close to the canonical Silero helpers such as get_speech_timestamps/load_silero_vad, it requires the caller to supply the model path/bytes, and there are some algorithmic details that may differ from the reference implementation. Still, it is coherent, maintainable, and likely runnable.\n\nResult B attempts to mimic the Python Silero interface more directly with get_speech_timestamps, get_speech_probs, and load_silero_vad, which is a strength. However, it is written as TypeScript inside a .js file: export interface declarations, type annotations, private method modifiers, and typed generics will cause syntax errors in normal JavaScript. It also has concrete bugs, such as referencing this.speechPadMs even though no such instance property is assigned, using __dirname in an ES module context, hardcoding 64 context samples even for 8 kHz, rounding timestamps to tenths of seconds and omitting speech padding/filtering behavior, and load_silero_vad returning an unloaded model unless a path is provided. These issues make it much less correct and less cleanly integrated. Therefore A is the better implementation."
+          },
+          {
+            "model": "anthropic/claude-opus-4-7:medium",
+            "judgement": "a",
+            "reasoning": "Result B writes TypeScript (interfaces, type annotations, `as` casts) into a .js file — it won't execute as plain JS. It also has a bug (`this.speechPadMs` is referenced before being defined; only `speechPadMs` is destructured), hardcodes context to 64 (wrong for 8kHz), and depends on Node-only modules (`fs`, `path`, `__dirname`) plus `onnxruntime-node` despite the project pointing at vendored onnxruntime/js. Result A is plain JS, correctly handles 8k/16k context sizes, uses `onnxruntime-common` Tensor/InferenceSession cleanly, accepts model bytes or path, exposes both batch (`process`) and streaming (`processChunk` + `getSpeechTimestamps`) APIs, and faithfully mirrors the Silero VadIterator logic. A is more correct, simpler, and integrates better."
           }
-        }
-      ]
+        ],
+        "judgement": "a"
+      }
+    },
+    {
+      "phase": "double-elimination round 2",
+      "a": "openai-codex/gpt-5.5:high",
+      "b": "deepseek/deepseek-v4-pro:high",
+      "winner": "openai-codex/gpt-5.5:high",
+      "result": {
+        "judgements": [
+          {
+            "model": "openai/gpt-5.5:medium",
+            "judgement": "a",
+            "reasoning": "Result A is the better implementation. It provides a much more complete Silero-style interface: default vendored model path, loadSileroVad/load_silero_vad, getSpeechTimestamps/get_speech_timestamps, VADIterator, collect/drop chunk helpers, a default vad facade, camelCase and snake_case aliases, ONNX Runtime injection, and node/web fallback. Its ONNX wrapper closely follows Silero's state/context handling, supports 8 kHz and 16 kHz, handles batch inputs, normalizes common PCM typed arrays, pads final windows for full-audio inference, and correctly downsamples multiples of 16 kHz before running the model and maps timestamps back to the original sample domain.\n\nResult B is simpler and reasonably readable, and its core single-window ONNX call is broadly aligned with Silero for 16 kHz Float32Array input. However, it is less complete and has correctness/integration issues: it has no default path to the vendored Silero model, exposes fewer Python/Silero-compatible aliases, falls back to onnxruntime-common rather than a usable backend, only handles a single unbatched Float32-like stream, and its handling of sample rates that are multiples of 16 kHz in getSpeechTimestamps is wrong because it records a downsampling step but never actually downsamples the audio before inference. Its streaming iterator also claims to wait for short tails but does not buffer them, so data can be lost. Overall, A is more correct, feature-complete, maintainable for typical Silero usage, and cleaner to integrate with the provided examples."
+          },
+          {
+            "model": "anthropic/claude-opus-4-7:medium",
+            "judgement": "b",
+            "reasoning": "B is simpler, more focused, and easier to maintain. It mirrors the Python silero-vad API (VAD.load, getSpeechTimestamps, VADIterator) cleanly. A adds many extras (batching, Python snake_case aliases, multiple facade exports, default model URL resolution, drop_chunks/collect_chunks, etc.) which add complexity and surface area for bugs—e.g. its `audioForward` recurses through `call` which already validates batch shape per-frame, and its facade has questionable iterator state handling. B's code is more readable and correct for the common cases, with clear streaming chunk handling. Both have similar core ONNX integration, but B's simplicity better matches \"typical\" usage and is more maintainable."
+          }
+        ],
+        "tiebreaker": {
+          "model": "google/gemini-3.1-pro-preview:medium",
+          "judgement": "a",
+          "reasoning": "Result A is significantly better. It correctly implements the Silero VAD logic in JS. Result B has multiple critical bugs:\n1. In `getSpeechTimestamps`, Result B checks if the sample rate is a multiple of 16000 and calculates a `step`, but it never actually downsamples the audio. Instead, it reads windows of 512 samples from the original high-sample-rate audio, effectively treating them as 16kHz audio, which completely breaks the model. Result A correctly downsamples the full audio buffer before processing.\n2. Result B's fallback to `onnxruntime-common` is incorrect for web usage, as `common` does not include an execution backend, causing `InferenceSession.create` to throw. Result A correctly falls back to `onnxruntime-web`.\n3. Result B's `VADIterator` claims to wait for short tails to buffer more data, but it doesn't store the remaining data anywhere, resulting in dropped audio frames.\n\nResult A is comprehensive, properly manages types, falls back to web correctly, and precisely mimics the Python library's functionality, making it the clear winner."
+        },
+        "judgement": "a"
+      }
+    },
+    {
+      "phase": "double-elimination round 2",
+      "a": "opencode-go/mimo-v2.5-pro:high",
+      "b": "opencode-go/kimi-k2.6:high",
+      "winner": "opencode-go/kimi-k2.6:high",
+      "result": {
+        "judgements": [
+          {
+            "model": "openai/gpt-5.5:medium",
+            "judgement": "b",
+            "reasoning": "Result A has a reasonable core ONNX inference loop and a useful createVad/process/processChunk API, but it does not really expose the typical Silero-style interface: the iterator class is private, there is no getSpeechTimestamps convenience function, and callers must always supply a model. More importantly, it imports from onnxruntime-common, which usually does not provide a usable Node backend by itself, making integration with normal ONNX Runtime JS examples questionable. Its segment padding is also simplistic and can create overlapping segments.\n\nResult B is not perfect: it ignores trailing partial frames, does not expose sessionOptions/model bytes, and its final open segment is not filtered by minSpeechDurationMs. However, it more closely matches the Silero examples and conventional API by exporting VadIterator and getSpeechTimestamps, providing a static async factory with a default Silero model path, using onnxruntime-node, maintaining the recurrent state/context correctly, and applying padding between adjacent segments in a more official-like way. Overall it is more complete, idiomatic, and likely to integrate cleanly with the provided Silero/ONNX Runtime examples."
+          },
+          {
+            "model": "anthropic/claude-opus-4-7:medium",
+            "judgement": "b",
+            "reasoning": "Both implementations mirror the official Silero VAD C++ algorithm closely. \n\nA: Uses `onnxruntime-common` (just types, not a runtime), exposes `createVad` factory returning a VadIterator. Has a streaming `processChunk` and a batch `process` that duplicates the state machine logic. Padding logic is simple but doesn't merge overlaps. Reassigns `this._state` to a new Float32Array each call.\n\nB: Uses `onnxruntime-node` (actual runtime), exports a `VadIterator` class with static `create` factory plus a `getSpeechTimestamps` convenience function matching the Python API. Single state-machine implementation used by both streaming (`call`) and batch (`process`). Padding logic mirrors the official Python implementation (split silence between adjacent segments) and merges overlaps. Returns both sample and second timestamps. Uses `state.set()` for in-place update, `subarray` for context.\n\nB is cleaner (no duplicated state machine), more faithful to the official Silero API (`get_speech_timestamps`, padding split logic), uses an actual ORT package, and is more maintainable. A's use of `onnxruntime-common` is technically wrong for runtime use."
+          }
+        ],
+        "judgement": "b"
+      }
+    },
+    {
+      "phase": "double-elimination round 2",
+      "a": "opencode-go/glm-5.1:high",
+      "b": "opencode-go/minimax-m2.7:high",
+      "winner": "opencode-go/glm-5.1:high",
+      "result": {
+        "judgements": [
+          {
+            "model": "openai/gpt-5.5:medium",
+            "judgement": "a",
+            "reasoning": "Result A is valid JavaScript, provides a usable ONNX Runtime wrapper around Silero VAD, maintains the recurrent state/context, exposes streaming processing plus timestamp utilities, and is relatively simple and maintainable. It has some possible rough edges: the exact output-name handling assumes positional outputs, the timestamp/iterator logic is only an approximation of Silero's reference logic, and some sample-index calculations/padding may be slightly off. Still, it is a plausible, runnable implementation that integrates with onnxruntime-node.\n\nResult B is not acceptable as ./asr/vad.js because it contains TypeScript-only syntax (`export interface`, typed parameters/returns, `private` class members, type assertions) in a `.js` file, so it will fail to parse in a normal JavaScript runtime. It also has additional correctness issues: `this.speechPadMs` is referenced but never assigned, `__dirname` is used in an ES module context, context size is hard-coded to 64 even for 8 kHz, the Silero `sr` tensor shape/output names may be incompatible depending on the model, `load_silero_vad()` may return an unloaded model when no path is supplied, and timestamps are rounded coarsely to tenths of seconds. Although B attempts a higher-level Silero-like API, its invalid syntax and multiple runtime bugs make it much worse.\n\nTherefore A should advance."
+          },
+          {
+            "model": "anthropic/claude-opus-4-7:medium",
+            "judgement": "a",
+            "reasoning": "Result B is written in TypeScript (interfaces, type annotations, `private`) but placed in a .js file — it won't run in Node without a transpile step, violating the request. It also has bugs (e.g. `this.speechPadSamples = this.speechPadMs * this.srPerMs` references `this.speechPadMs` which is never assigned, resulting in NaN), uses `__dirname` in what should be ESM, and is overly complex. Result A is plain JS, uses ESM consistently with the rest of the project, properly handles context/state buffers, exposes a clean VoiceActivityDetector + VADIterator + getSpeechTimestamps mirroring the Python Silero API, and integrates cleanly with onnxruntime-node."
+          }
+        ],
+        "judgement": "a"
+      }
+    },
+    {
+      "phase": "double-elimination round 3",
+      "a": "openai-codex/gpt-5.5:high",
+      "b": "opencode-go/kimi-k2.6:high",
+      "winner": "openai-codex/gpt-5.5:high",
+      "result": {
+        "judgements": [
+          {
+            "model": "openai/gpt-5.5:medium",
+            "judgement": "a",
+            "reasoning": "Result A is substantially more complete and closer to the typical Silero VAD interface. It exports Python/Silero-style APIs such as load_silero_vad/loadSileroVad, get_speech_timestamps/getSpeechTimestamps, VADIterator, collect/drop chunk helpers, and a default vad facade. Its ONNX wrapper correctly manages Silero recurrent state, prepends the required context samples, supports 8 kHz and 16 kHz, pads the final frame for full-audio processing, accepts a model path relative to the module, and can work with either onnxruntime-node or onnxruntime-web / injected ORT. It also ports much of the official timestamping logic and provides streaming and full-buffer modes.\n\nResult B is simpler, but it is much less faithful and less robust. It only exports a minimal VadIterator and getSpeechTimestamps, lacks the usual load_silero_vad-style model wrapper, hard-codes onnxruntime-node, uses a fragile CWD-relative model path, drops the final partial audio frame instead of padding it, exposes a frameSizeMs option that can create invalid Silero input sizes, and has several state-machine/timestamp edge cases such as trailing speech not being checked against the minimum speech duration. It also does not integrate as cleanly with browser/web ORT or the broader Silero utility API.\n\nA has some complexity and a few minor rough edges, but it is clearly the better implementation for correctness, maintainability of the public interface, and compatibility with Silero's expected JavaScript/ONNX usage."
+          },
+          {
+            "model": "anthropic/claude-opus-4-7:medium",
+            "judgement": "b",
+            "reasoning": "Result B is simpler, more maintainable, and closely mirrors Silero's official C++/C# reference examples (context size 64/32, state shape [2,1,128], input/state/sr feeds, output/stateN). It has clear JSDoc, a clean factory, a focused state machine, and a convenient getSpeechTimestamps helper.\n\nResult A is far more ambitious—it adds batching, audioForward, streaming VADIterator, collect/drop chunks, snake_case aliases, dynamic ort loading, and downsampling—but this breadth introduces complexity and likely bugs (e.g., context reset on every call clobbers stateful streaming, the get_speech_timestamps state machine port has subtle deviations from the Python reference, redundant API surface like `vad`, `utils`, `createVad`). The prompt emphasizes simple/maintainable code that integrates cleanly with the provided ORT/Silero examples; B fits that better."
+          }
+        ],
+        "tiebreaker": {
+          "model": "google/gemini-3.1-pro-preview:medium",
+          "judgement": "a",
+          "reasoning": "Result A is the better implementation because it provides a much more faithful replication of the typical Silero VAD Python interface, supporting 'get_speech_timestamps', 'VADIterator', 'collect_chunks', and 'drop_chunks' as well as snake_case aliases. \n\nResult A handles ONNX runtime loading dynamically, making it usable in both Node.js and the browser, whereas Result B hardcodes 'onnxruntime-node', which breaks in non-Node environments. Result A also correctly pads the final audio frames, whereas Result B's batching loop drops any trailing audio that doesn't fit the window size perfectly, which can truncate short utterances or cause missed end-of-speech detections. Furthermore, Result A uses 'import.meta.url' to robustly resolve the model path regardless of the working directory, while B relies on a fragile relative string path.\n\nWhile A is more complex, its complexity is warranted to accurately port the official state machine, manage padding, support multiple sampling rates seamlessly, and expose the standard utility functions expected from Silero VAD."
+        },
+        "judgement": "a"
+      }
+    },
+    {
+      "phase": "double-elimination round 3",
+      "a": "opencode-go/glm-5.1:high",
+      "b": "deepseek/deepseek-v4-pro:high",
+      "winner": "opencode-go/glm-5.1:high",
+      "result": {
+        "judgements": [
+          {
+            "model": "openai/gpt-5.5:medium",
+            "judgement": "a",
+            "reasoning": "Result A should advance. Its low-level ONNX invocation is more likely to work with the Silero VAD ONNX model: it uses the standard input names (`input`, `state`, `sr`), maintains the recurrent state and context correctly, uses the correct 512/256 sample windows and 64/32 sample context, and importantly creates the `sr` tensor as a scalar (`dims: []`), matching the usual Silero ONNX export/Python wrapper behavior. It is also relatively simple and maintainable, with a straightforward detector, iterator, and timestamp helper.\n\nResult A has some weaknesses: the API is not quite the most conventional Silero-style `VAD.load(...)` interface, batch handling is only really valid for batch size 1, it silently pads/truncates chunks, and the full-audio timestamp implementation is simpler than the Python reference. The static named import from `onnxruntime-node` may also be less portable than importing the whole ORT namespace.\n\nResult B has a nicer high-level shape in some ways: `VAD.load`, `VADIterator`, `getSpeechTimestamps`, dynamic ORT import, and a more ambitious attempt to mirror the Python Silero timestamp logic. However, it has more correctness risks. The `sr` tensor is constructed with shape `[1]`, whereas Silero ONNX models typically expect a scalar sample-rate tensor, which can cause runtime input-rank errors. Its support for sample rates above 16 kHz is internally inconsistent in `getSpeechTimestamps` because it computes a decimation step but then calls the model with the already-normalized sample rate, so no decimation happens and timing/windowing become wrong. The complex max-speech segmentation code also appears more error-prone. Given the priority on correctness and clean integration with ONNX/Silero examples, A is the safer implementation."
+          },
+          {
+            "model": "anthropic/claude-opus-4-7:medium",
+            "judgement": "b",
+            "reasoning": "B more closely mirrors the official Silero VAD Python interface (VAD.load, getSpeechTimestamps with same option names like minSpeechDurationMs, maxSpeechDurationS, returnSeconds, VADIterator with samplingRate). It implements the full segmentation logic including max speech duration handling. A uses positional output access (outputs[outputNames[0]]) which is fragile and may swap prob/state, and uses shape `[]` for sr tensor (Silero expects [1]). B explicitly references `results.output` and `results.stateN` by name matching the Silero ONNX model, and uses [1] shape for sr. B's API better matches typical Silero usage."
+          }
+        ],
+        "tiebreaker": {
+          "model": "google/gemini-3.1-pro-preview:medium",
+          "judgement": "a",
+          "reasoning": "Result A is the better implementation because it prioritizes correctness and robustness over unverified feature-parity. \n\nPros of Result A:\n- Correctly shapes the `sr` tensor as a scalar (`dims: []`), matching the input rank typical for Silero VAD ONNX models (where Python uses `np.array(sr)`).\n- Safely enforces 8kHz or 16kHz sample rates, avoiding complex and bug-prone audio resampling.\n- Uses positional output access, which is resilient to the output tensor name changes that have occurred across different versions of the Silero ONNX model (e.g., `output` vs `output0`).\n- Provides a clean, straightforward, and well-structured implementation.\n\nCons of Result A:\n- Missing the maximum speech duration cut-off logic present in the Python reference.\n- Static `onnxruntime-node` import limits environment portability without bundler configuration.\n\nPros of Result B:\n- Closer match to the official Python API surface (e.g., `VAD.load`, exact argument names).\n- Attempts to implement the full max-speech-duration segmenting logic.\n- Attempts dynamic loading of ONNX Runtime to support both node and common environments.\n\nCons of Result B:\n- Contains a major bug in its sample-rate decimation logic: in `getSpeechTimestamps`, it determines a window size of 512 for high-sr audio and loops `i += windowSize` over the original high-sr buffer, slicing 512 samples. It then passes `sr = 16000` to `model.call`, meaning `_validateInput` never decimates those chunks. As a result, 512 un-decimated high-frequency samples are evaluated as if they were 16kHz audio, resulting in garbage predictions.\n- Defines the `sr` tensor with shape `[1]`, which can trigger input rank mismatch errors for ONNX models expecting a scalar (`[]`).\n\nDue to the fundamental correctness issue in B's audio chunking and sample rate handling, Result A is the clear winner."
+        },
+        "judgement": "a"
+      }
+    },
+    {
+      "phase": "double-elimination round 3",
+      "bye": "opencode-go/mimo-v2.5-pro:high",
+      "winner": "opencode-go/mimo-v2.5-pro:high"
+    },
+    {
+      "phase": "double-elimination round 4",
+      "a": "openai-codex/gpt-5.5:high",
+      "b": "opencode-go/glm-5.1:high",
+      "winner": "openai-codex/gpt-5.5:high",
+      "result": {
+        "judgements": [
+          {
+            "model": "openai/gpt-5.5:medium",
+            "judgement": "a",
+            "reasoning": "Result A is the better implementation. It provides a much more Silero-like JavaScript interface: loadSileroVad/load_silero_vad, getSpeechTimestamps/get_speech_timestamps, VADIterator, collect/drop chunk helpers, a default vad facade, configurable ONNX Runtime loading, default model path resolution, sample-rate validation/downsampling, recurrent state/context handling, batched inference support, and options that closely mirror the Python Silero VAD API. Its timestamp algorithm is also much closer to the upstream Silero implementation, including padding, negative threshold, max speech duration handling, returnSeconds, and snake_case/camelCase option aliases. This makes it more maintainable and easier to integrate with Silero examples.\n\nResult B is simpler and has some correct core pieces, notably the recurrent state/context handling for a single stream and using a scalar int64 sr tensor, which may match ONNX Runtime expectations better. However, it is much less complete as a typical Silero interface: no load_silero_vad-style loader, no default model path, no default export/facade, no browser/web runtime fallback, fewer Silero-compatible option names, a simplified getSpeechTimestamps, and incomplete/buggy batch handling. It also statically imports onnxruntime-node, which is less flexible for the provided ONNX Runtime JS/vendor context.\n\nAlthough A may have a possible compatibility risk around the ONNX `sr` tensor shape depending on the exact model version, overall it implements the requested Silero VAD JavaScript interface far more fully and cleanly than B."
+          },
+          {
+            "model": "anthropic/claude-opus-4-7:medium",
+            "judgement": "a",
+            "reasoning": "A more closely mirrors the Python silero-vad public API (load_silero_vad, get_speech_timestamps, VADIterator, collect_chunks, drop_chunks, utils), which is what the prompt asks for (\"typical way for silero\"). It correctly handles state/context per batch, supports both 8k/16k, normalizes int PCM, has proper sr tensor shape [1], and ports the full get_speech_timestamps logic including max_speech handling and padding. B is simpler but less faithful: it constructs the sr tensor with shape [] (scalar) which may not match Silero's expected shape [1], lacks batch support, omits min/max speech handling in the iterator, and exposes a less idiomatic API (VoiceActivityDetector class requiring explicit init). A's extra surface (createVad facade, default model URL resolution, aliases) integrates more cleanly with both onnxruntime-node and the Silero examples. A wins on correctness and API fidelity despite being larger."
+          }
+        ],
+        "judgement": "a"
+      }
+    },
+    {
+      "phase": "double-elimination round 4",
+      "bye": "opencode-go/mimo-v2.5-pro:high",
+      "winner": "opencode-go/mimo-v2.5-pro:high"
+    },
+    {
+      "phase": "double-elimination round 5",
+      "a": "openai-codex/gpt-5.5:high",
+      "b": "opencode-go/mimo-v2.5-pro:high",
+      "winner": "openai-codex/gpt-5.5:high",
+      "result": {
+        "judgements": [
+          {
+            "model": "openai/gpt-5.5:medium",
+            "judgement": "a",
+            "reasoning": "Result A is much closer to the requested Silero VAD JavaScript interface. It provides Python/Silero-style exports such as load_silero_vad/loadSileroVad, get_speech_timestamps/getSpeechTimestamps, VADIterator, collect/drop chunk helpers, and a default facade. It correctly models the ONNX Silero calling convention with context concatenation, recurrent state, 8 kHz/16 kHz frame sizes, int64 sample-rate tensor, final-frame padding for full-audio processing, optional downsampling for multiples of 16 kHz, and a reasonably faithful port of the speech timestamp state machine. It also integrates more cleanly by dynamically loading onnxruntime-node or onnxruntime-web and by providing a default model path.\n\nA is not perfect: it is fairly large, has some complexity, and parts of the timestamp/max-speech logic may not be a flawless port. Its default vendored model path may still depend on the actual repository layout. But overall it is maintainable, feature-complete, and aligned with typical Silero interfaces.\n\nResult B has a simpler implementation and correctly captures some core pieces of Silero ONNX inference: context, state, sample-rate tensor, and default 512/256 sample windows. However, it does not expose the typical Silero API, lacks load_silero_vad/get_speech_timestamps top-level helpers, requires the caller to supply a model with no default path, and imports from onnxruntime-common, which usually does not provide a usable backend by itself. Its class is not exported directly, full-audio processing skips the trailing partial chunk instead of padding it, it has limited validation/conversion/downsampling, supports only batch size 1, and its timestamp logic is less faithful. Therefore A should advance."
+          },
+          {
+            "model": "anthropic/claude-opus-4-7:medium",
+            "judgement": "a",
+            "reasoning": "A closely mirrors the typical Silero Python interface (load_silero_vad, get_speech_timestamps, VADIterator, collect_chunks, drop_chunks) which the prompt explicitly asks for (\"typical way for silero\"). It properly handles the model's context window (64/32 samples prepended), state shape [2,1,128], int64 sr tensor, and supports both 8k and 16k. B is simpler but has issues: it uses ms-based window sizing rather than the strict 512/256 frame requirement of Silero (windowSizeSamples must equal 512 at 16k); while default 32ms*16=512 works, allowing arbitrary windowSizeMs would break the model. B also lacks the standard Silero API surface and doesn't expose a clean way to load the bundled vendor model. A's executionProviders default and dynamic ort import (node/web) integrate more cleanly. A is more correct and feature-complete despite being longer."
+          }
+        ],
+        "judgement": "a"
+      }
     }
   ]
 }
