@@ -1,0 +1,7 @@
+prompt = """
+Review ./vendor/onnxruntime/js and ./vendor/silero-vad/examples to grok how to use silero vad with onnx with js. then write ./asr/vad.js, which should export a vad interface in the typical way for silero.
+"""
+
+judgePrompt = """
+Judge which result better implements the requested Silero VAD JavaScript interface. Prefer code that is correct, simple, maintainable, and integrates cleanly with the provided ONNX Runtime and Silero examples.
+"""
