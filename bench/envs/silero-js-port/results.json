@@ -1,13 +1,15 @@
 {
   "version": 2,
-  "strategy": "double-elimination",
+  "strategy": "double-elimination+binary-insertion",
   "ranking": [
     "openai-codex/gpt-5.5:high",
     "opencode-go/mimo-v2.5-pro:high",
     "opencode-go/glm-5.1:high",
     "deepseek/deepseek-v4-pro:high",
     "opencode-go/kimi-k2.6:high",
-    "opencode-go/minimax-m2.7:high"
+    "opencode-go/minimax-m2.7:high",
+    "vllm/qwen:high",
+    "openrouter/arcee-ai/trinity-large-thinking:high"
   ],
   "matches": [
     {
@@ -240,6 +242,111 @@
             "model": "anthropic/claude-opus-4-7:medium",
             "judgement": "a",
             "reasoning": "A closely mirrors the typical Silero Python interface (load_silero_vad, get_speech_timestamps, VADIterator, collect_chunks, drop_chunks) which the prompt explicitly asks for (\"typical way for silero\"). It properly handles the model's context window (64/32 samples prepended), state shape [2,1,128], int64 sr tensor, and supports both 8k and 16k. B is simpler but has issues: it uses ms-based window sizing rather than the strict 512/256 frame requirement of Silero (windowSizeSamples must equal 512 at 16k); while default 32ms*16=512 works, allowing arbitrary windowSizeMs would break the model. B also lacks the standard Silero API surface and doesn't expose a clean way to load the bundled vendor model. A's executionProviders default and dynamic ort import (node/web) integrate more cleanly. A is more correct and feature-complete despite being longer."
+          }
+        ],
+        "judgement": "a"
+      }
+    },
+    {
+      "phase": "binary insertion for openrouter/arcee-ai/trinity-large-thinking:high",
+      "a": "openrouter/arcee-ai/trinity-large-thinking:high",
+      "b": "deepseek/deepseek-v4-pro:high",
+      "winner": "deepseek/deepseek-v4-pro:high",
+      "result": {
+        "judgements": [
+          {
+            "model": "openai/gpt-5.5:medium",
+            "judgement": "b",
+            "reasoning": "Result A does not provide any implementation at all, so it cannot satisfy the request to write ./asr/vad.js.\n\nResult B provides a substantial JavaScript Silero VAD interface with a model wrapper, one-shot getSpeechTimestamps, and streaming VADIterator, and it attempts to mirror the common Silero Python API. It uses ONNX Runtime sessions and tensors, keeps model state/context, exports usable classes/functions, and is reasonably maintainable.\n\nThere are some correctness/integration concerns in B: the exact ONNX input/output names may not match all Silero JS examples/models; dynamic importing of onnxruntime-node/common may not align with the vendored runtime; int64 tensors with BigInt64Array can be backend-sensitive; handling of sample-rate downsampling and sample index conversion has some inconsistencies; VADIterator drops short tails instead of buffering them; and the max-speech segmentation logic is only an approximation of Silero's reference implementation. Still, compared with no implementation, B is clearly the better result and should advance."
+          },
+          {
+            "model": "anthropic/claude-opus-4-7:medium",
+            "judgement": "b",
+            "reasoning": "A produced no files; B provides a comprehensive, reasonable implementation with VAD, getSpeechTimestamps, and VADIterator matching the Silero Python interface."
+          }
+        ],
+        "judgement": "b"
+      }
+    },
+    {
+      "phase": "binary insertion for openrouter/arcee-ai/trinity-large-thinking:high",
+      "a": "openrouter/arcee-ai/trinity-large-thinking:high",
+      "b": "opencode-go/minimax-m2.7:high",
+      "winner": "opencode-go/minimax-m2.7:high",
+      "result": {
+        "judgements": [
+          {
+            "model": "openai/gpt-5.5:medium",
+            "judgement": "b",
+            "reasoning": "Result A provides no files at all, so it does not implement the requested ./asr/vad.js interface in any way.\n\nResult B at least attempts a Silero VAD wrapper around ONNX Runtime and exposes plausible utilities such as VadIterator, get_speech_timestamps, get_speech_probs, load_silero_vad, and PCM conversion helpers. It follows the broad Silero pattern of chunking audio, maintaining recurrent state/context, running the ONNX model, and producing timestamp segments.\n\nHowever, Result B has significant issues: the file is named .js but contains TypeScript-only syntax such as `export interface`, typed parameters/returns, and `private`, so it will not run as JavaScript without transpilation. It imports `onnxruntime-node` rather than clearly integrating with the provided vendor ONNX Runtime JS examples. It uses `__dirname` in an ES module, which is undefined. There are likely API/model mismatches, including hardcoded input/output names, state tensor shape, context size for 8 kHz vs 16 kHz, and questionable timestamp rounding. `load_silero_vad()` also returns an unloaded VAD if no model path is supplied, causing later calls to fail. The segmenting logic has some bugs around max duration and currentSpeech handling.\n\nDespite these flaws, B is the only result that contains an implementation attempt and is much closer to satisfying the request than A's empty result. Therefore B should advance."
+          },
+          {
+            "model": "anthropic/claude-opus-4-7:medium",
+            "judgement": "b",
+            "reasoning": "A produced no files. B provides a working implementation (despite being TypeScript-flavored in a .js file, which is a flaw) with reasonable structure mirroring silero-vad. B advances by default."
+          }
+        ],
+        "judgement": "b"
+      }
+    },
+    {
+      "phase": "binary insertion for vllm/qwen:high",
+      "a": "vllm/qwen:high",
+      "b": "deepseek/deepseek-v4-pro:high",
+      "winner": "deepseek/deepseek-v4-pro:high",
+      "result": {
+        "judgements": [
+          {
+            "model": "openai/gpt-5.5:medium",
+            "judgement": "b",
+            "reasoning": "Result A provides no files at all, so it does not implement ./asr/vad.js or any requested Silero VAD interface. It cannot satisfy the prompt.\n\nResult B at least creates an asr/vad.js module exporting a plausible Silero-style interface: a VAD model wrapper, getSpeechTimestamps for batch use, and VADIterator for streaming. It uses ONNX Runtime tensors, maintains Silero recurrent state and context, handles 8 kHz/16 kHz windows, and approximates the Python Silero VAD timestamping logic. The code is reasonably structured and documented.\n\nHowever, Result B has several correctness/integration concerns: it guesses package imports rather than clearly matching the vendored ONNX Runtime setup; tensor/output names such as input/state/sr/output/stateN may or may not match the exact Silero ONNX model variant; BigInt int64 tensors may not work in all JS/browser runtimes; support for sample rates above 16 kHz is inconsistent because getSpeechTimestamps computes original-rate sample counts while calling the model with downsampled chunks incorrectly; VADIterator drops short tails instead of buffering; some timestamp/max-speech logic diverges from the reference implementation; and it does not demonstrate clean integration with the provided vendor examples. Still, compared with an empty submission, it is clearly the better implementation and should advance."
+          },
+          {
+            "model": "anthropic/claude-opus-4-7:medium",
+            "judgement": "b",
+            "reasoning": "A produced no files; B provides a complete, reasonable Silero VAD implementation mirroring the Python interface."
+          }
+        ],
+        "judgement": "b"
+      }
+    },
+    {
+      "phase": "binary insertion for vllm/qwen:high",
+      "a": "vllm/qwen:high",
+      "b": "opencode-go/minimax-m2.7:high",
+      "winner": "opencode-go/minimax-m2.7:high",
+      "result": {
+        "judgements": [
+          {
+            "model": "openai/gpt-5.5:medium",
+            "judgement": "b",
+            "reasoning": "Result A provides no files at all, so it does not implement the requested ./asr/vad.js interface in any way.\n\nResult B at least attempts to create a Silero VAD wrapper with a VadIterator class, ONNX Runtime session loading, get_speech_timestamps-style API, probability helpers, and audio conversion helpers. However, it has serious issues: the file is named .js but contains TypeScript-only syntax such as export interface, type annotations, and private fields, so it will not run as JavaScript; it imports onnxruntime-node rather than clearly integrating with the provided vendor ONNX Runtime JS examples; it uses __dirname in an ES module context; default model discovery is speculative; there is a constructor bug using this.speechPadMs even though no such property is set; load_silero_vad does not load a model unless a path is passed but returns methods that require one; and the Silero state/input/output details may not match the actual vendored model/examples. The timestamp logic is also only an approximation of Silero's reference implementation.\n\nDespite these problems, B is still preferable to A because it provides a substantive, if flawed, implementation attempt, whereas A provides nothing to evaluate or integrate."
+          },
+          {
+            "model": "anthropic/claude-opus-4-7:medium",
+            "judgement": "b",
+            "reasoning": "A produced no files. B provides an actual implementation (though it's TypeScript instead of JS as requested, it's a reasonable port of the silero-vad C++ iterator). B advances by default."
+          }
+        ],
+        "judgement": "b"
+      }
+    },
+    {
+      "phase": "binary insertion for vllm/qwen:high",
+      "a": "vllm/qwen:high",
+      "b": "openrouter/arcee-ai/trinity-large-thinking:high",
+      "winner": "vllm/qwen:high",
+      "result": {
+        "judgements": [
+          {
+            "model": "openai/gpt-5.5:medium",
+            "judgement": "a",
+            "reasoning": "Both Result A and Result B produced no files, so neither implements ./asr/vad.js, exports a Silero-style VAD interface, or integrates with ONNX Runtime / Silero examples at all. There is no correctness, maintainability, or integration merit to distinguish them. Since the outputs are effectively identical failures and a choice is required, I select A arbitrarily."
+          },
+          {
+            "model": "anthropic/claude-opus-4-7:medium",
+            "judgement": "a",
+            "reasoning": "Both results produced no files, so neither is functional. Defaulting to A as a tiebreaker."
           }
         ],
         "judgement": "a"
