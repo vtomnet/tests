@@ -8,7 +8,7 @@
 // model name follows syntax `provider_name/model_name:think_level`
 async function runTest(model: string, prompt: string, workspacePath: string, outPath: string, initCode: string) {
   // init gondolin vm
-  // mount workspacePath as /workspace (ephemeral)
+  // mount workspacePath as /workspace (ephemeral, e.g. copied into a MemoryProvider)
   // eval initCode. should probably allow all network access for the init code, then disallow
   // network reqs for the agent.
 
@@ -19,11 +19,16 @@ async function runTest(model: string, prompt: string, workspacePath: string, out
   // we don't need everything from that; e.g., we don't need to route '!' commands to the vm, since
   // we're not running pi interactively.
   //
+  // use a custom resourceloader to avoid accidentally reading skills and such we don't mean to.
+  // should use at least ${agentDir}/sessions/, ${agentDir}/auth.json
+  //
   // run agent with prompt
 
-  // write any new/modified files to outPath (preserving directory structure, e.g. if
-  // /workspace/vendor/ghostty/src/main.zig is modified, then it should be saved to
-  // ${outPath}/workspace/vendor/ghostty/src/main.zig
+  // track all modified/created files in the VM (either via gondolin hooks if it gives them, or
+  // diff at the end) and write modified/created files into outPath. Preserve directory structure,
+  // e.g. if /workspace/vendor/ghostty/src/main.zig is modified, then it should be saved to
+  // ${outPath}/workspace/vendor/ghostty/src/main.zig. Only track modified/created files in
+  // /workspace.
 }
 
 // for (testDir in ${scriptDir}/envs/*) {
@@ -86,8 +91,6 @@ async function runTest(model: string, prompt: string, workspacePath: string, out
 
 // manifest.json should later include permission scoping for web access, etc.
 
-// IMPORTANT: make sure pi does not autoload surprising things like ~/.agents/skills
-//
 // To be explicit about file structure, here is an example:
 // /          # project root, i.e. ~/tests/bench. is git root
 //   main.ts  # runs the vm, pi, handles git snapshots of results, prints results, etc.
