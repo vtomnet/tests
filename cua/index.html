@@ -20,6 +20,10 @@
       <section class="panel">
         <div class="stack">
           <div>
+            <div style="margin-bottom: 10px;">
+              <label for="apiKey">OpenRouter API key</label><br>
+              <input id="apiKey" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="sk-or-v1-..." style="width: 100%; max-width: 28rem;">
+            </div>
             <div class="actions" style="margin-bottom: 10px;">
               <button id="selectAll">Select all</button>
               <button id="selectNone">Select none</button>
@@ -76,13 +80,51 @@
   </main>
 
   <script>
+    const MODELS = {
+      // commented-out models do not support image grounding
+
+      "anthropic/claude-opus-4-7": {},
+      "anthropic/claude-sonnet-4-6": {},
+      "anthropic/claude-haiku-4.5": {},
+
+      "openai/gpt-5.4": {},
+      "openai/gpt-5.4-mini": {},
+      // "openai/gpt-5.4-nano": {},
+
+      // "x-ai/grok-4.20": {},
+      // "x-ai/grok-4.1-fast": {},
+
+      // gemini-3-flash doesn't work very reliably. need more testing
+      "google/gemini-3.1-pro-preview": { reasoning: true, norm: [1000, 1000] },
+      "google/gemini-3-flash-preview": { norm: [1000, 1000] },
+      "google/gemini-3.1-flash-lite-preview": { norm: [1000, 1000] },
+      // "google/gemma-4-31b-it": {},
+      // "google/gemma-4-26b-a4b-it": {},
+
+      // TODO try qwen3.6-35b-a3b
+      "qwen/qwen3.5-397b-a17b": { norm: [1000, 1000] },
+      "qwen/qwen3.5-35b-a3b": { norm: [1000, 1000] },
+      // "qwen/qwen3.5-27b": { norm: [1000, 1000] },
+      // "qwen/qwen3.5-9b": { norm: [1000, 1000] },
+
+      "moonshotai/kimi-k2.5": { norm: [1, 1] },
+
+      // "mistralai/mistral-small-2603": {},
+
+      // not only can't it do image grounding, it can't do structured outputs
+      // "xiaomi/mimo-v2-omni": {},
+
+      // 5v might kinda work at norm:[1000,1000]. but structured outputs fail
+      // "z-ai/glm-5v-turbo": { norm: [1000, 1000] },
+      "z-ai/glm-4.6v": { norm: [1000, 1000] },
+    }
+
     const WIDTH = 1024;
     const HEIGHT = 768;
     const REAL = { x: 751, y: 275 };
-    const IMAGE_PATH = "/image.png";
+    const DOT_RADIUS = 5;
+    const API_KEY_STORAGE_KEY = "openrouter-api-key";
     const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
-
-    const MODELS_PATH = "/models.json";
 
     // known-good providers
     const PROVIDERS = [
@@ -93,11 +135,14 @@
       "google-ai-studio",
       "z-ai",
       "xai",
-      "deepinfra", // for gemma-4
-      "together", // for qwen3.5-9b
+      "mistral",
+      "xiaomi",
+      // "deepinfra", // for gemma-4
+      // "together", // for qwen3.5-9b
     ];
 
     const elements = {
+      apiKey: document.getElementById("apiKey"),
       selectAll: document.getElementById("selectAll"),
       selectNone: document.getElementById("selectNone"),
       modelList: document.getElementById("modelList"),
@@ -111,13 +156,12 @@
       rows: document.getElementById("rows")
     };
 
+
     let modelConfigs = [];
     let results = [];
     let currentSort = elements.sortSelect.value;
     let running = false;
     let imageDataUrlPromise = null;
-
-    const injectedApiKey = typeof window !== "undefined" ? window.__OPENROUTER_API_KEY__ || "" : "";
 
     function escapeHtml(value) {
       return String(value)
@@ -142,19 +186,40 @@
       elements.status.classList.toggle("error", isError);
     }
 
+    function loadSavedApiKey() {
+      elements.apiKey.value = localStorage.getItem(API_KEY_STORAGE_KEY) || "";
+    }
+
+    function saveApiKey() {
+      const value = elements.apiKey.value.trim();
+      if (value) {
+        localStorage.setItem(API_KEY_STORAGE_KEY, value);
+      } else {
+        localStorage.removeItem(API_KEY_STORAGE_KEY);
+      }
+    }
+
+    function makeImageDataUrl() {
+      const canvas = document.createElement("canvas");
+      canvas.width = WIDTH;
+      canvas.height = HEIGHT;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Failed to create 2d canvas context");
+
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = "red";
+      ctx.beginPath();
+      ctx.arc(REAL.x, REAL.y, DOT_RADIUS, 0, Math.PI * 2);
+      ctx.fill();
+
+      return canvas.toDataURL("image/png");
+    }
+
     async function imageDataUrl() {
       if (!imageDataUrlPromise) {
-        imageDataUrlPromise = fetch(IMAGE_PATH)
-          .then((response) => {
-            if (!response.ok) throw new Error(`Failed to load ${IMAGE_PATH}`);
-            return response.blob();
-          })
-          .then((blob) => new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = () => reject(new Error(`Failed to read ${IMAGE_PATH}`));
-            reader.readAsDataURL(blob);
-          }));
+        imageDataUrlPromise = Promise.resolve(makeImageDataUrl());
       }
 
       return imageDataUrlPromise;
@@ -270,10 +335,7 @@
 
     async function loadModelConfigs() {
       setStatus("Loading models...");
-      const response = await fetch(MODELS_PATH);
-      if (!response.ok) throw new Error(`Failed to load ${MODELS_PATH}`);
-      const payload = await response.json();
-      modelConfigs = Object.entries(payload).map(([model, options]) => ({
+      modelConfigs = Object.entries(MODELS).map(([model, options]) => ({
         model,
         enabled: true,
         ...options
@@ -283,14 +345,20 @@
     }
 
     async function runModel(config, apiKey, imageUrl) {
-      const started = performance.now();
-      const response = await fetch(BASE_URL, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
+      const schema = {
+        name: "coords",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            x: { type: "number" },
+            y: { type: "number" },
+          },
+          required: ["x", "y"],
+          additionalProperties: false,
         },
-        body: JSON.stringify({
+      };
+      const body = {
           model: config.model,
           reasoning: {
             enabled: Boolean(config.reasoning)
@@ -317,25 +385,22 @@
           ],
           response_format: {
             type: "json_schema",
-            json_schema: {
-              name: "coords",
-              strict: true,
-              schema: {
-                type: "object",
-                properties: {
-                  x: { type: "number" },
-                  y: { type: "number" },
-                },
-                required: ["x", "y"],
-                additionalProperties: false,
-              },
-            },
+            json_schema: schema,
           },
-        }),
+      };
+      const started = performance.now();
+      const response = await fetch(BASE_URL, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body),
       });
 
       const payload = await response.json();
       const elapsed = (performance.now() - started) / 1000;
+      console.log(payload);
 
       if (!response.ok) {
         const message = payload?.error?.message || `HTTP ${response.status}`;
@@ -493,11 +558,11 @@
     }
 
     async function runBench() {
-      const apiKey = injectedApiKey.trim();
+      const apiKey = elements.apiKey.value.trim();
       const configs = selectedConfigs();
 
       if (!apiKey) {
-        setStatus("No OPENROUTER_API_KEY injected.", true);
+        setStatus("Enter an OpenRouter API key.", true);
         return;
       }
 
@@ -535,10 +600,15 @@
       }
     }
 
+    loadSavedApiKey();
     renderResults();
     loadModelConfigs().catch((error) => {
       const message = error instanceof Error ? error.message : String(error);
       setStatus(message, true);
+    });
+
+    elements.apiKey.addEventListener("input", () => {
+      saveApiKey();
     });
 
     elements.selectAll.addEventListener("click", () => {

@@ -1,0 +1,9 @@
+[submodule "bench/silero-js-port/vendor/onnxruntime"]
+	path = bench/silero-js-port/vendor/onnxruntime
+	url = https://github.com/microsoft/onnxruntime
+[submodule "bench/silero-js-port/vendor/silero-vad"]
+	path = bench/silero-js-port/vendor/silero-vad
+	url = https://github.com/snakers4/silero-vad
+[submodule "bench/envs/ghostty-mem-leak/root/vendor/ghostty"]
+	path = bench/envs/ghostty-mem-leak/root/vendor/ghostty
+	url = https://github.com/ghostty-org/ghostty
