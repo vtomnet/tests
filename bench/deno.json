@@ -5,7 +5,6 @@
   },
   "imports": {
     "@earendil-works/gondolin": "npm:@earendil-works/gondolin@^0.8.0",
-    "@mariozechner/pi-ai": "npm:@mariozechner/pi-ai@^0.70.2",
     "@mariozechner/pi-coding-agent": "npm:@mariozechner/pi-coding-agent@^0.70.2",
     "@std/assert": "jsr:@std/assert@1",
     "@std/toml": "jsr:@std/toml@1"

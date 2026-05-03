@@ -1,1 +1,5 @@
-enabled = false
+# enabled = false
+
+prompt = """
+figure out why ghostty ram usage is so high. Ghostty source code is in vendor/ghostty, for reference.
+"""
