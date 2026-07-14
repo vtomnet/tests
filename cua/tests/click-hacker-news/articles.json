@@ -1,0 +1,749 @@
+{
+  "url": "https://news.ycombinator.com",
+  "fetchedAt": "2026-06-05T22:25:06.844Z",
+  "screenshot": "screenshot.png",
+  "width": 1280,
+  "height": 1214,
+  "articles": [
+    {
+      "id": "48416845",
+      "title": "Three of our worst VC stories",
+      "domain": "twitter.com/eastdakota",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 43.5,
+          "width": 196.46875,
+          "height": 16
+        },
+        "domain": {
+          "x": 343.671875,
+          "y": 45.5,
+          "width": 123.59375,
+          "height": 13
+        },
+        "comments": {
+          "x": 247.921875,
+          "y": 61,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48413464",
+      "title": "Astronauts told to return to ISS after sheltering over air leak repairs",
+      "domain": "bbc.com",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 78.5,
+          "width": 459.15625,
+          "height": 16
+        },
+        "domain": {
+          "x": 606.359375,
+          "y": 80.5,
+          "width": 45.109375,
+          "height": 13
+        },
+        "comments": {
+          "x": 239.203125,
+          "y": 96,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48414367",
+      "title": "pg_durable: Microsoft open sources in-database durable execution",
+      "domain": "github.com/microsoft",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 113.5,
+          "width": 447.171875,
+          "height": 16
+        },
+        "domain": {
+          "x": 594.375,
+          "y": 115.5,
+          "width": 114.75,
+          "height": 13
+        },
+        "comments": {
+          "x": 258.328125,
+          "y": 131,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48414653",
+      "title": "Gemma 4 QAT models: Optimizing compression for mobile and laptop efficiency",
+      "domain": "blog.google",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 148.5,
+          "width": 536.53125,
+          "height": 16
+        },
+        "domain": {
+          "x": 683.734375,
+          "y": 150.5,
+          "width": 62.0625,
+          "height": 13
+        },
+        "comments": {
+          "x": 295.609375,
+          "y": 166,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48413500",
+      "title": "New method turns ocean water into drinking water, without waste",
+      "domain": "rochester.edu",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 183.5,
+          "width": 443.234375,
+          "height": 16
+        },
+        "domain": {
+          "x": 590.4375,
+          "y": 185.5,
+          "width": 72.4375,
+          "height": 13
+        },
+        "comments": {
+          "x": 241.46875,
+          "y": 201,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48398925",
+      "title": "My Agent Skill for Test-Driven Development",
+      "domain": "saturnci.com",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 218.5,
+          "width": 293.09375,
+          "height": 16
+        },
+        "domain": {
+          "x": 440.296875,
+          "y": 220.5,
+          "width": 68.953125,
+          "height": 13
+        },
+        "comments": {
+          "x": 243.21875,
+          "y": 236,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48383667",
+      "title": "Mouseless – keyboard-driven control of macOS/Linux/Windows",
+      "domain": "mouseless.click",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 253.5,
+          "width": 423.8125,
+          "height": 16
+        },
+        "domain": {
+          "x": 571.015625,
+          "y": 255.5,
+          "width": 83.03125,
+          "height": 13
+        },
+        "comments": {
+          "x": 241.140625,
+          "y": 271,
+          "width": 61.828125,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48416635",
+      "title": "Transformers Are Inherently Succinct",
+      "domain": "openreview.net",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 288.5,
+          "width": 249.578125,
+          "height": 16
+        },
+        "domain": {
+          "x": 396.78125,
+          "y": 290.5,
+          "width": 82.234375,
+          "height": 13
+        },
+        "comments": {
+          "x": 247.734375,
+          "y": 306,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48415217",
+      "title": "Gov.uk has replaced Stripe with Dutch provider Adyen",
+      "domain": "theregister.com",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 323.5,
+          "width": 363.796875,
+          "height": 16
+        },
+        "domain": {
+          "x": 511,
+          "y": 325.5,
+          "width": 83.1875,
+          "height": 13
+        },
+        "comments": {
+          "x": 270.890625,
+          "y": 341,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48414027",
+      "title": "Conventional Commits encourages focus on the wrong things",
+      "domain": "sumnerevans.com",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 358.5,
+          "width": 411.15625,
+          "height": 16
+        },
+        "domain": {
+          "x": 558.359375,
+          "y": 360.5,
+          "width": 97.75,
+          "height": 13
+        },
+        "comments": {
+          "x": 228.40625,
+          "y": 376,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48411635",
+      "title": "Did Claude increase bugs in rsync?",
+      "domain": "alexispurslane.github.io",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 393.5,
+          "width": 234.140625,
+          "height": 16
+        },
+        "domain": {
+          "x": 381.34375,
+          "y": 395.5,
+          "width": 127.328125,
+          "height": 13
+        },
+        "comments": {
+          "x": 252.0625,
+          "y": 411,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48417916",
+      "title": "Hacker News, Sans AI",
+      "domain": "elijahpotter.dev",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 428.5,
+          "width": 148.265625,
+          "height": 16
+        },
+        "domain": {
+          "x": 295.46875,
+          "y": 430.5,
+          "width": 83.109375,
+          "height": 13
+        },
+        "comments": {
+          "x": 273.296875,
+          "y": 446,
+          "width": 51.03125,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48406174",
+      "title": "Ask HN: What was your \"oh shit\" moment with GenAI?",
+      "domain": null,
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 463.5,
+          "width": 368.421875,
+          "height": 16
+        },
+        "domain": null,
+        "comments": {
+          "x": 261.59375,
+          "y": 481,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48413072",
+      "title": "I tested every IP KVM in my Homelab",
+      "domain": "jeffgeerling.com",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 498.5,
+          "width": 252.328125,
+          "height": 16
+        },
+        "domain": {
+          "x": 399.53125,
+          "y": 500.5,
+          "width": 86.921875,
+          "height": 13
+        },
+        "comments": {
+          "x": 262.203125,
+          "y": 516,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48402744",
+      "title": "\"Maybe later\" was a feature",
+      "domain": "arnorhs.dev",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 533.5,
+          "width": 186.484375,
+          "height": 16
+        },
+        "domain": {
+          "x": 333.6875,
+          "y": 535.5,
+          "width": 64.203125,
+          "height": 13
+        },
+        "comments": {
+          "x": 239.296875,
+          "y": 551,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48380174",
+      "title": "Cooldown Support for Ruby Bundler",
+      "domain": "rubygems.org",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 568.5,
+          "width": 240.625,
+          "height": 16
+        },
+        "domain": {
+          "x": 387.828125,
+          "y": 570.5,
+          "width": 74.625,
+          "height": 13
+        },
+        "comments": {
+          "x": 243.328125,
+          "y": 586,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48411799",
+      "title": "The Empty Field That Wasn't: GPS, OTAD and Two Decades of Encrypted Broadcasts",
+      "domain": "mydigitalpublication.com",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 603.5,
+          "width": 565.03125,
+          "height": 16
+        },
+        "domain": {
+          "x": 712.234375,
+          "y": 605.5,
+          "width": 133.640625,
+          "height": 13
+        },
+        "comments": {
+          "x": 252.9375,
+          "y": 621,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48416936",
+      "title": "Accidentally deleted subscriptions for chat integrations (Slack and MS Teams)",
+      "domain": "githubstatus.com",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 638.5,
+          "width": 520.921875,
+          "height": 16
+        },
+        "domain": {
+          "x": 668.125,
+          "y": 640.5,
+          "width": 92.828125,
+          "height": 13
+        },
+        "comments": {
+          "x": 259.75,
+          "y": 656,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48398689",
+      "title": "Inside FAISS: Billion-Scale Similarity Search",
+      "domain": "fremaconsulting.ch",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 673.5,
+          "width": 297,
+          "height": 16
+        },
+        "domain": {
+          "x": 444.203125,
+          "y": 675.5,
+          "width": 102.109375,
+          "height": 13
+        },
+        "comments": {
+          "x": 232.578125,
+          "y": 691,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48414869",
+      "title": "Launch HN: General Instinct (YC P26) – Frontier models on edge devices",
+      "domain": null,
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 708.5,
+          "width": 489.625,
+          "height": 16
+        },
+        "domain": null,
+        "comments": {
+          "x": 273.703125,
+          "y": 726,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48414978",
+      "title": "Mantine-datatable (and others) compromised – owner account suspended",
+      "domain": "github.com/icflorescu",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 743.5,
+          "width": 496.875,
+          "height": 16
+        },
+        "domain": {
+          "x": 644.078125,
+          "y": 745.5,
+          "width": 115.296875,
+          "height": 13
+        },
+        "comments": {
+          "x": 278.59375,
+          "y": 761,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48413254",
+      "title": "India's surprise baby bust",
+      "domain": "economist.com",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 778.5,
+          "width": 173.625,
+          "height": 16
+        },
+        "domain": {
+          "x": 320.828125,
+          "y": 780.5,
+          "width": 80.921875,
+          "height": 13
+        },
+        "comments": {
+          "x": 260.65625,
+          "y": 796,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48409664",
+      "title": "Tracing a powerful GNSS interference source over Europe",
+      "domain": "arxiv.org",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 813.5,
+          "width": 385.515625,
+          "height": 16
+        },
+        "domain": {
+          "x": 532.71875,
+          "y": 815.5,
+          "width": 47.109375,
+          "height": 13
+        },
+        "comments": {
+          "x": 275.25,
+          "y": 831,
+          "width": 61.828125,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48382047",
+      "title": "Redis 8.8: New array data structure, rate limiter, performance improvements",
+      "domain": "redis.io",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 848.5,
+          "width": 517.578125,
+          "height": 16
+        },
+        "domain": {
+          "x": 664.78125,
+          "y": 850.5,
+          "width": 39.296875,
+          "height": 13
+        },
+        "comments": {
+          "x": 230.140625,
+          "y": 866,
+          "width": 61.828125,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48408016",
+      "title": "C++: The Documentary",
+      "domain": "herbsutter.com",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 883.5,
+          "width": 161.0625,
+          "height": 16
+        },
+        "domain": {
+          "x": 308.265625,
+          "y": 885.5,
+          "width": 80.65625,
+          "height": 13
+        },
+        "comments": {
+          "x": 234.609375,
+          "y": 901,
+          "width": 61.828125,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48413295",
+      "title": "Dutch gov't will only allow European company to operate DigiD platform",
+      "domain": "nltimes.nl",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 918.5,
+          "width": 484.484375,
+          "height": 16
+        },
+        "domain": {
+          "x": 631.6875,
+          "y": 920.5,
+          "width": 52.625,
+          "height": 13
+        },
+        "comments": {
+          "x": 272.546875,
+          "y": 936,
+          "width": 55.890625,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48411227",
+      "title": "Nango (YC W23, dev infra) is hiring staff back end engineers",
+      "domain": "nango.dev",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 952,
+          "width": 408.125,
+          "height": 16
+        },
+        "domain": {
+          "x": 555.328125,
+          "y": 954,
+          "width": 56.09375,
+          "height": 13
+        },
+        "comments": {
+          "x": 138.609375,
+          "y": 968,
+          "width": 61.828125,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48409675",
+      "title": "Entanglement Builds Space-Time. Now \"Magic\" Gives It Gravity",
+      "domain": "quantamagazine.org",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 985.5,
+          "width": 424.203125,
+          "height": 16
+        },
+        "domain": {
+          "x": 571.40625,
+          "y": 987.5,
+          "width": 110.125,
+          "height": 13
+        },
+        "comments": {
+          "x": 242.671875,
+          "y": 1003,
+          "width": 61.828125,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48409955",
+      "title": "Show HN: Lowfat – pluggable CLI filter that saved 91.8% of my LLM tokens",
+      "domain": "github.com/zdk",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 1020.5,
+          "width": 508.921875,
+          "height": 16
+        },
+        "domain": {
+          "x": 656.125,
+          "y": 1022.5,
+          "width": 83.40625,
+          "height": 13
+        },
+        "comments": {
+          "x": 243.265625,
+          "y": 1038,
+          "width": 61.828125,
+          "height": 11
+        }
+      }
+    },
+    {
+      "id": "48409191",
+      "title": "Changing how we develop Ladybird",
+      "domain": "ladybird.org",
+      "boxes": {
+        "title": {
+          "x": 138.609375,
+          "y": 1055.5,
+          "width": 237.515625,
+          "height": 16
+        },
+        "domain": {
+          "x": 384.71875,
+          "y": 1057.5,
+          "width": 64.578125,
+          "height": 13
+        },
+        "comments": {
+          "x": 281.375,
+          "y": 1073,
+          "width": 61.828125,
+          "height": 11
+        }
+      }
+    }
+  ]
+}

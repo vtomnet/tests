@@ -1,0 +1,16 @@
+{
+  "nodeModulesDir": "auto",
+  "tasks": {
+    "run": "deno task build-ui && deno run --allow-all main.ts",
+    "serve": "deno run --allow-all main.ts",
+    "build-ui": "vite build",
+    "check": "deno check main.ts complete.ts types.ts html.ts geometry.ts tests/*/main.ts"
+  },
+  "imports": {
+    "@earendil-works/pi-ai": "npm:@earendil-works/pi-ai@^0.78.1",
+    "@std/path": "jsr:@std/path@^1.1.2",
+    "pngjs": "npm:pngjs@^7.0.0",
+    "puppeteer": "npm:puppeteer@^24.33.0",
+    "typebox": "npm:typebox@^1.1.38"
+  }
+}
